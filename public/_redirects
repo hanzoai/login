@@ -1,5 +1,5 @@
 # Cloudflare Pages redirects
 /login    /login.html    200
-/signup   /login.html    200
+/signup   /signup.html   200
 /forget   /login.html    200
 /         /login.html    200

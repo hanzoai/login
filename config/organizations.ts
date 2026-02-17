@@ -1,4 +1,10 @@
 // Organization configurations - fork this repo and customize for your org
+export interface SocialProvider {
+  id: string             // Casdoor provider name (e.g., 'provider-github')
+  type: string           // Provider type (github, google, facebook, phone)
+  label: string          // Display label
+}
+
 export interface OrgConfig {
   id: string
   name: string
@@ -7,6 +13,9 @@ export interface OrgConfig {
   // IAM endpoints
   iamUrl: string
   clientId: string
+  clientSecret: string
+  casdoorOrg: string     // Casdoor organization name
+  casdoorApp: string     // Casdoor application name
 
   // Branding
   logo: string           // Path to logo SVG/PNG
@@ -34,6 +43,7 @@ export interface OrgConfig {
   enableCodeLogin: boolean
   enableWebAuthn: boolean
   enableFaceId: boolean
+  socialProviders: SocialProvider[]
 
   // URLs
   homepageUrl: string
@@ -46,8 +56,11 @@ export const hanzo: OrgConfig = {
   id: 'hanzo',
   name: 'hanzo',
   displayName: 'Hanzo',
-  iamUrl: 'https://iam.hanzo.ai',
+  iamUrl: 'https://hanzo.id',
   clientId: 'hanzo-app-client-id',
+  clientSecret: '3c7c4d9817bf0993681f6da2605e07ba5949da87a32862ed',
+  casdoorOrg: 'hanzo',
+  casdoorApp: 'app-hanzo',
   logo: '/logos/hanzo.svg',
   favicon: '/favicons/hanzo.svg',
   theme: {
@@ -65,6 +78,10 @@ export const hanzo: OrgConfig = {
   enableCodeLogin: true,
   enableWebAuthn: true,
   enableFaceId: true,
+  socialProviders: [
+    { id: 'provider-github', type: 'github', label: 'GitHub' },
+    { id: 'provider-google', type: 'google', label: 'Google' },
+  ],
   homepageUrl: 'https://hanzo.ai',
   termsUrl: 'https://hanzo.ai/terms',
   privacyUrl: 'https://hanzo.ai/privacy',
@@ -75,8 +92,11 @@ export const lux: OrgConfig = {
   id: 'lux',
   name: 'lux',
   displayName: 'Lux',
-  iamUrl: 'https://iam.hanzo.ai',
+  iamUrl: 'https://lux.id',
   clientId: 'lux-app-client-id',
+  clientSecret: '2b750cdf20b3a4e5f6789012345678901234567890abcdef',
+  casdoorOrg: 'lux',
+  casdoorApp: 'app-lux',
   logo: '/logos/lux.svg',
   favicon: '/favicons/lux.svg',
   theme: {
@@ -95,6 +115,7 @@ export const lux: OrgConfig = {
   enableCodeLogin: true,
   enableWebAuthn: true,
   enableFaceId: true,
+  socialProviders: [],
   homepageUrl: 'https://lux.network',
   termsUrl: 'https://lux.network/terms',
   privacyUrl: 'https://lux.network/privacy',
@@ -105,8 +126,11 @@ export const pars: OrgConfig = {
   id: 'pars',
   name: 'pars',
   displayName: 'Pars',
-  iamUrl: 'https://iam.hanzo.ai',
+  iamUrl: 'https://pars.id',
   clientId: 'pars-app-client-id',
+  clientSecret: '38d12a87261234567890abcdef1234567890abcdef123456',
+  casdoorOrg: 'pars',
+  casdoorApp: 'app-pars',
   logo: '/logos/pars.svg',
   favicon: '/favicons/pars.svg',
   theme: {
@@ -125,9 +149,86 @@ export const pars: OrgConfig = {
   enableCodeLogin: true,
   enableWebAuthn: true,
   enableFaceId: false,
+  socialProviders: [],
   homepageUrl: 'https://pars.id',
   termsUrl: 'https://pars.id/terms',
   privacyUrl: 'https://pars.id/privacy',
+}
+
+// AdNexus - Programmatic advertising platform
+export const adnexus: OrgConfig = {
+  id: 'adnexus',
+  name: 'adnexus',
+  displayName: 'AdNexus',
+  iamUrl: 'https://id.ad.nexus',
+  clientId: 'adnexus-app-client-id',
+  clientSecret: 'afcb24af6b1289f8ec01693183d51571927eb206567fc7ef',
+  casdoorOrg: 'adnexus',
+  casdoorApp: 'app-adnexus',
+  logo: '/logos/adnexus.svg',
+  favicon: '/favicons/adnexus.svg',
+  theme: {
+    background: '#0a0a0f',
+    surface: '#141419',
+    primary: '#ffffff',
+    primaryHover: '#e5e5e5',
+    text: '#ffffff',
+    textMuted: '#888888',
+    border: '#333333',
+    borderFocus: '#555555',
+  },
+  tagline: 'Programmatic Advertising Platform',
+  enableSignup: true,
+  enablePasswordLogin: true,
+  enableCodeLogin: true,
+  enableWebAuthn: false,
+  enableFaceId: false,
+  socialProviders: [
+    { id: 'provider-github', type: 'github', label: 'GitHub' },
+    { id: 'provider-google', type: 'google', label: 'Google' },
+    { id: 'provider-facebook', type: 'facebook', label: 'Facebook' },
+  ],
+  homepageUrl: 'https://ad.nexus',
+  termsUrl: 'https://ad.nexus/terms-of-service',
+  privacyUrl: 'https://ad.nexus/privacy-policy',
+}
+
+// AdXYZ - Crypto-native ad network (white-label of AdNexus)
+export const adxyz: OrgConfig = {
+  id: 'adxyz',
+  name: 'adxyz',
+  displayName: 'AdXYZ',
+  iamUrl: 'https://id.ad.xyz',
+  clientId: 'adxyz-app-client-id',
+  clientSecret: 'adxyz-client-secret-placeholder',
+  casdoorOrg: 'adxyz',
+  casdoorApp: 'app-adxyz',
+  logo: '/logos/adxyz.svg',
+  favicon: '/favicons/adxyz.svg',
+  theme: {
+    background: '#050510',
+    surface: '#0c0c18',
+    primary: '#8b5cf6',
+    primaryHover: '#7c3aed',
+    text: '#ffffff',
+    textMuted: '#a1a1aa',
+    border: '#27272a',
+    borderFocus: '#8b5cf6',
+  },
+  tagline: 'Crypto-Native Ad Network',
+  enableSignup: true,
+  enablePasswordLogin: true,
+  enableCodeLogin: true,
+  enableWebAuthn: false,
+  enableFaceId: false,
+  socialProviders: [
+    { id: 'provider-github', type: 'github', label: 'GitHub' },
+    { id: 'provider-google', type: 'google', label: 'Google' },
+    { id: 'provider-facebook', type: 'facebook', label: 'Facebook' },
+  ],
+  homepageUrl: 'https://ad.xyz',
+  termsUrl: 'https://ad.xyz/terms-of-service',
+  privacyUrl: 'https://ad.xyz/privacy-policy',
 }
 
 // Export all orgs
@@ -135,11 +236,15 @@ export const organizations: Record<string, OrgConfig> = {
   hanzo,
   lux,
   pars,
+  adnexus,
+  adxyz,
 }
 
 // Get org config by hostname
 export function getOrgByHost(host: string): OrgConfig {
   if (host.includes('lux.id')) return lux
   if (host.includes('pars.id')) return pars
+  if (host.includes('ad.nexus')) return adnexus
+  if (host.includes('ad.xyz')) return adxyz
   return hanzo
 }
