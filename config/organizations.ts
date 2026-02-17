@@ -1,7 +1,7 @@
 // Organization configurations - fork this repo and customize for your org
 export interface SocialProvider {
   id: string             // Casdoor provider name (e.g., 'provider-github')
-  type: string           // Provider type (github, google, facebook, phone)
+  type: string           // Provider type (github, google, facebook, apple, wallet)
   label: string          // Display label
 }
 
@@ -43,6 +43,7 @@ export interface OrgConfig {
   enableCodeLogin: boolean
   enableWebAuthn: boolean
   enableFaceId: boolean
+  enableWallet: boolean  // Web3 wallet connect (MetaMask, etc.)
   socialProviders: SocialProvider[]
 
   // URLs
@@ -78,9 +79,11 @@ export const hanzo: OrgConfig = {
   enableCodeLogin: true,
   enableWebAuthn: true,
   enableFaceId: true,
+  enableWallet: true,
   socialProviders: [
-    { id: 'provider-github', type: 'github', label: 'GitHub' },
     { id: 'provider-google', type: 'google', label: 'Google' },
+    { id: 'provider-github', type: 'github', label: 'GitHub' },
+    { id: 'provider-apple', type: 'apple', label: 'Apple' },
   ],
   homepageUrl: 'https://hanzo.ai',
   termsUrl: 'https://hanzo.ai/terms',
@@ -115,6 +118,7 @@ export const lux: OrgConfig = {
   enableCodeLogin: true,
   enableWebAuthn: true,
   enableFaceId: true,
+  enableWallet: true,
   socialProviders: [],
   homepageUrl: 'https://lux.network',
   termsUrl: 'https://lux.network/terms',
@@ -149,6 +153,7 @@ export const pars: OrgConfig = {
   enableCodeLogin: true,
   enableWebAuthn: true,
   enableFaceId: false,
+  enableWallet: false,
   socialProviders: [],
   homepageUrl: 'https://pars.id',
   termsUrl: 'https://pars.id/terms',
@@ -183,9 +188,11 @@ export const adnexus: OrgConfig = {
   enableCodeLogin: true,
   enableWebAuthn: false,
   enableFaceId: false,
+  enableWallet: true,
   socialProviders: [
-    { id: 'provider-github', type: 'github', label: 'GitHub' },
     { id: 'provider-google', type: 'google', label: 'Google' },
+    { id: 'provider-apple', type: 'apple', label: 'Apple' },
+    { id: 'provider-github', type: 'github', label: 'GitHub' },
     { id: 'provider-facebook', type: 'facebook', label: 'Facebook' },
   ],
   homepageUrl: 'https://ad.nexus',
@@ -221,9 +228,11 @@ export const adxyz: OrgConfig = {
   enableCodeLogin: true,
   enableWebAuthn: false,
   enableFaceId: false,
+  enableWallet: true,
   socialProviders: [
-    { id: 'provider-github', type: 'github', label: 'GitHub' },
     { id: 'provider-google', type: 'google', label: 'Google' },
+    { id: 'provider-apple', type: 'apple', label: 'Apple' },
+    { id: 'provider-github', type: 'github', label: 'GitHub' },
     { id: 'provider-facebook', type: 'facebook', label: 'Facebook' },
   ],
   homepageUrl: 'https://ad.xyz',

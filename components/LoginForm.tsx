@@ -10,11 +10,23 @@ interface LoginFormProps {
 
 type AuthMethod = 'password' | 'code' | 'webauthn' | 'faceid'
 
+// Ethereum provider type
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+      isMetaMask?: boolean
+    }
+  }
+}
+
 // SVG icons for social providers
 const providerIcons: Record<string, string> = {
   github: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>',
   google: '<svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>',
   facebook: '<svg viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>',
+  apple: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>',
+  wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="14" r="1.5" fill="currentColor" stroke="none"/><path d="M6 6V4a2 2 0 012-2h8a2 2 0 012 2v2"/></svg>',
 }
 
 export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
@@ -25,6 +37,7 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
+  const [walletLoading, setWalletLoading] = useState(false)
   const [error, setError] = useState('')
 
   const isSignup = mode === 'signup'
@@ -46,7 +59,6 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
     const { redirectUri, clientId } = getUrlParams()
 
     if (isSignup) {
-      // Validate
       if (password !== confirmPassword) {
         setError('Passwords do not match')
         setLoading(false)
@@ -59,7 +71,6 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
       }
 
       try {
-        // Call Casdoor signup API
         const resp = await fetch(`${org.iamUrl}/api/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -82,7 +93,7 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
           return
         }
 
-        // Signup succeeded - now login automatically
+        // Auto-login after signup
         const tokenResp = await fetch(`${org.iamUrl}/api/login/oauth/access_token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -102,7 +113,6 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
           const sep = redirectUri.includes('?') ? '&' : '?'
           window.location.href = `${redirectUri}${sep}token=${encodeURIComponent(tokenData.access_token)}`
         } else {
-          // Signup succeeded but auto-login failed - redirect to login page
           window.location.href = `/login${window.location.search}`
         }
       } catch {
@@ -147,7 +157,6 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
   const handleSocialLogin = (providerId: string) => {
     const { redirectUri, clientId } = getUrlParams()
     const state = btoa(JSON.stringify({ redirect_uri: redirectUri }))
-    // Redirect to Casdoor OAuth authorize with provider hint
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -157,6 +166,84 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
       provider: providerId,
     })
     window.location.href = `${org.iamUrl}/login/oauth/authorize?${params.toString()}`
+  }
+
+  const handleWalletConnect = async () => {
+    setWalletLoading(true)
+    setError('')
+
+    try {
+      if (!window.ethereum) {
+        setError('No wallet detected. Install MetaMask or another Web3 wallet.')
+        setWalletLoading(false)
+        return
+      }
+
+      // Request accounts
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[]
+      if (!accounts || accounts.length === 0) {
+        setError('No account selected')
+        setWalletLoading(false)
+        return
+      }
+
+      const address = accounts[0]
+      const { redirectUri, clientId } = getUrlParams()
+
+      // Create a sign-in message
+      const nonce = Math.random().toString(36).substring(2, 15)
+      const timestamp = new Date().toISOString()
+      const message = [
+        `Sign in to ${org.displayName}`,
+        ``,
+        `Wallet: ${address}`,
+        `Nonce: ${nonce}`,
+        `Issued At: ${timestamp}`,
+      ].join('\n')
+
+      // Request signature
+      const signature = await window.ethereum.request({
+        method: 'personal_sign',
+        params: [message, address],
+      }) as string
+
+      // Send to backend for verification and token exchange
+      const resp = await fetch(`${org.iamUrl}/api/login/wallet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          application: org.casdoorApp,
+          organization: org.casdoorOrg,
+          address: address,
+          message: message,
+          signature: signature,
+          nonce: nonce,
+          clientId: clientId,
+        }),
+      })
+
+      const data = await resp.json()
+
+      if (data.access_token) {
+        const sep = redirectUri.includes('?') ? '&' : '?'
+        window.location.href = `${redirectUri}${sep}token=${encodeURIComponent(data.access_token)}`
+      } else if (data.status === 'ok' || data.msg === 'ok') {
+        // Wallet linked but need to complete signup — redirect with wallet address
+        const sep = redirectUri.includes('?') ? '&' : '?'
+        window.location.href = `${redirectUri}${sep}wallet=${encodeURIComponent(address)}&signature=${encodeURIComponent(signature)}`
+      } else {
+        setError(data.msg || data.error || 'Wallet authentication failed. Try email login.')
+        setWalletLoading(false)
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'unknown error'
+      if (message.includes('User rejected') || message.includes('user rejected')) {
+        setError('Wallet connection cancelled')
+      } else {
+        setError('Wallet connection failed. Please try again.')
+      }
+      setWalletLoading(false)
+    }
   }
 
   const allMethods = [
@@ -170,7 +257,7 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
   const styles = {
     card: {
       width: '100%',
-      maxWidth: '400px',
+      maxWidth: '420px',
       padding: '2.5rem',
       borderRadius: '12px',
       background: org.theme.surface,
@@ -216,6 +303,7 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
       border: `1px solid ${org.theme.border}`,
       color: org.theme.text,
       marginBottom: '1rem',
+      boxSizing: 'border-box' as const,
     } as React.CSSProperties,
     options: {
       display: 'flex',
@@ -250,7 +338,7 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
       display: 'flex',
       alignItems: 'center',
       gap: '1rem',
-      margin: '1.5rem 0',
+      margin: '1.25rem 0',
       fontSize: '0.75rem',
       color: org.theme.textMuted,
     },
@@ -265,14 +353,15 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
       justifyContent: 'center',
       gap: '0.75rem',
       width: '100%',
-      padding: '0.75rem',
+      padding: '0.7rem',
       borderRadius: '8px',
       border: `1px solid ${org.theme.border}`,
       background: 'transparent',
       color: org.theme.text,
       fontSize: '0.875rem',
       cursor: 'pointer',
-      marginBottom: '0.75rem',
+      marginBottom: '0.5rem',
+      transition: 'background 0.15s',
     } as React.CSSProperties,
     socialIcon: {
       width: '20px',
@@ -281,6 +370,27 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    // Compact row for 2 buttons side by side
+    socialRow: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginBottom: '0.5rem',
+    },
+    socialButtonHalf: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '0.5rem',
+      flex: 1,
+      padding: '0.7rem',
+      borderRadius: '8px',
+      border: `1px solid ${org.theme.border}`,
+      background: 'transparent',
+      color: org.theme.text,
+      fontSize: '0.8rem',
+      cursor: 'pointer',
+      transition: 'background 0.15s',
+    } as React.CSSProperties,
     footer: {
       textAlign: 'center' as const,
       marginTop: '1.5rem',
@@ -291,8 +401,13 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
 
   // Preserve query params when switching between login/signup
   const otherPageUrl = isSignup
-    ? `/login${window.location?.search || ''}`
-    : `/signup${window.location?.search || ''}`
+    ? `/login${typeof window !== 'undefined' ? window.location?.search || '' : ''}`
+    : `/signup${typeof window !== 'undefined' ? window.location?.search || '' : ''}`
+
+  // Split social providers: first 2 get full-width buttons, rest go in pairs
+  const providers = org.socialProviders
+  const topProviders = providers.slice(0, 2)
+  const bottomProviders = providers.slice(2)
 
   return (
     <div style={styles.card}>
@@ -302,9 +417,10 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
       </div>
 
       {/* Social login buttons */}
-      {org.socialProviders.length > 0 && (
+      {(providers.length > 0 || org.enableWallet) && (
         <>
-          {org.socialProviders.map(provider => (
+          {/* Top providers: full-width */}
+          {topProviders.map(provider => (
             <button
               key={provider.id}
               onClick={() => handleSocialLogin(provider.id)}
@@ -320,9 +436,47 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
             </button>
           ))}
 
+          {/* Bottom providers: pairs */}
+          {bottomProviders.length > 0 && (
+            <div style={styles.socialRow}>
+              {bottomProviders.map(provider => (
+                <button
+                  key={provider.id}
+                  onClick={() => handleSocialLogin(provider.id)}
+                  style={styles.socialButtonHalf}
+                  onMouseOver={e => (e.currentTarget.style.background = org.theme.background)}
+                  onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <span
+                    style={styles.socialIcon}
+                    dangerouslySetInnerHTML={{ __html: providerIcons[provider.type] || '' }}
+                  />
+                  {provider.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Wallet connect button */}
+          {org.enableWallet && (
+            <button
+              onClick={handleWalletConnect}
+              disabled={walletLoading}
+              style={styles.socialButton}
+              onMouseOver={e => (e.currentTarget.style.background = org.theme.background)}
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span
+                style={styles.socialIcon}
+                dangerouslySetInnerHTML={{ __html: providerIcons.wallet }}
+              />
+              {walletLoading ? 'Connecting...' : 'Connect Wallet'}
+            </button>
+          )}
+
           <div style={styles.divider}>
             <div style={styles.dividerLine} />
-            <span>or</span>
+            <span>or continue with email</span>
             <div style={styles.dividerLine} />
           </div>
         </>
