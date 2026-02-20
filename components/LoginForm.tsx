@@ -32,6 +32,8 @@ const providerIcons: Record<string, string> = {
 export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
   const [method, setMethod] = useState<AuthMethod>('password')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [usePhone, setUsePhone] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [name, setName] = useState('')
@@ -122,32 +124,39 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
       return
     }
 
-    // Login flow
+    // Login flow — use Casdoor's login API
+    const identifier = usePhone ? phone : email
     try {
-      const tokenResp = await fetch(`${org.iamUrl}/api/login/oauth/access_token`, {
+      const loginResp = await fetch(`${org.iamUrl}/api/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'password',
-          client_id: clientId,
-          client_secret: org.clientSecret || '',
-          username: email,
-          password: password,
-          scope: 'openid profile email',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          application: org.casdoorApp,
+          organization: org.casdoorOrg,
+          username: identifier,
+          password: method === 'password' ? password : undefined,
+          code: method === 'code' ? code : undefined,
+          type: method === 'code' ? 'code' : 'login',
         }),
       })
 
-      const tokenData = await tokenResp.json()
+      const loginData = await loginResp.json()
 
-      if (tokenData.error || !tokenData.access_token) {
-        const msg = tokenData.error_description || tokenData.error || 'Authentication failed'
-        setError(msg === 'invalid_grant' ? 'Invalid email or password' : msg)
+      if (loginData.status === 'error' || (loginData.msg && loginData.msg !== 'ok')) {
+        setError(loginData.msg || loginData.data2 || 'Invalid credentials')
         setLoading(false)
         return
       }
 
-      const sep = redirectUri.includes('?') ? '&' : '?'
-      window.location.href = `${redirectUri}${sep}token=${encodeURIComponent(tokenData.access_token)}`
+      // Exchange code for token via authorization code flow
+      const authParams = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'openid profile email',
+        state: btoa(JSON.stringify({ redirect_uri: redirectUri })),
+      })
+      window.location.href = `${org.iamUrl}/login/oauth/authorize?${authParams.toString()}`
     } catch {
       setError('Connection error. Please try again.')
       setLoading(false)
@@ -160,11 +169,13 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
-      response_type: 'token',
+      response_type: 'code',
       scope: 'openid profile email',
       state: state,
       provider: providerId,
     })
+    // Social OAuth goes through IAM backend so callback URL matches
+    // what's registered with Google/GitHub/Facebook
     window.location.href = `${org.iamUrl}/login/oauth/authorize?${params.toString()}`
   }
 
@@ -416,10 +427,27 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
         {org.tagline && <p style={styles.tagline}>{org.tagline}</p>}
       </div>
 
-      {/* Social login buttons */}
+      {/* External auth buttons — wallet first, then social */}
       {(providers.length > 0 || org.enableWallet) && (
         <>
-          {/* Top providers: full-width */}
+          {/* Wallet connect — top priority */}
+          {org.enableWallet && (
+            <button
+              onClick={handleWalletConnect}
+              disabled={walletLoading}
+              style={styles.socialButton}
+              onMouseOver={e => (e.currentTarget.style.background = org.theme.background)}
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span
+                style={styles.socialIcon}
+                dangerouslySetInnerHTML={{ __html: providerIcons.wallet }}
+              />
+              {walletLoading ? 'Connecting...' : 'Connect Wallet'}
+            </button>
+          )}
+
+          {/* Social providers: full-width */}
           {topProviders.map(provider => (
             <button
               key={provider.id}
@@ -436,7 +464,7 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
             </button>
           ))}
 
-          {/* Bottom providers: pairs */}
+          {/* Remaining providers: pairs */}
           {bottomProviders.length > 0 && (
             <div style={styles.socialRow}>
               {bottomProviders.map(provider => (
@@ -457,26 +485,9 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
             </div>
           )}
 
-          {/* Wallet connect button */}
-          {org.enableWallet && (
-            <button
-              onClick={handleWalletConnect}
-              disabled={walletLoading}
-              style={styles.socialButton}
-              onMouseOver={e => (e.currentTarget.style.background = org.theme.background)}
-              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
-            >
-              <span
-                style={styles.socialIcon}
-                dangerouslySetInnerHTML={{ __html: providerIcons.wallet }}
-              />
-              {walletLoading ? 'Connecting...' : 'Connect Wallet'}
-            </button>
-          )}
-
           <div style={styles.divider}>
             <div style={styles.dividerLine} />
-            <span>or continue with email</span>
+            <span>OR CONTINUE WITH {usePhone ? 'PHONE' : 'EMAIL'}</span>
             <div style={styles.dividerLine} />
           </div>
         </>
@@ -514,14 +525,46 @@ export function LoginForm({ org, mode = 'login' }: LoginFormProps) {
           />
         )}
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          style={styles.input}
-        />
+        {/* Email / Phone toggle */}
+        <div style={{ position: 'relative' }}>
+          {usePhone ? (
+            <input
+              type="tel"
+              placeholder="Phone number"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              required
+              style={styles.input}
+            />
+          ) : (
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              style={styles.input}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setUsePhone(!usePhone)}
+            style={{
+              position: 'absolute',
+              right: '0.75rem',
+              top: '0.75rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              color: org.theme.textMuted,
+              padding: '2px 6px',
+              borderRadius: '4px',
+            }}
+          >
+            {usePhone ? 'Use email' : 'Use phone'}
+          </button>
+        </div>
 
         {(method === 'password' || isSignup) && (
           <input
